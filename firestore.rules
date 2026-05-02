@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['name', 'email', 'createdAt'])
+          && data.keys().size() == 3
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.email is string && data.email.size() > 0 && data.email.size() <= 255
+          && data.createdAt == request.time;
+      }
+
+      // 8. Secure List Queries (though we don't list here)
+      allow get: if isOwner(userId) && isValidId(userId);
+      
+      // 2. Validation Blueprint
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(request.resource.data);
+      
+      // Support for future updates if needed
+      allow update: if isOwner(userId) && isValidId(userId) 
+        && isValidUser(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt; // 9. Immortal Field
+    }
+  }
+}

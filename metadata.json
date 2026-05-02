@@ -1,0 +1,6 @@
+{
+  "name": "Firebase Auth System",
+  "description": "A complete user authentication system with React, Firebase Auth, and Firestore featuring signup, login, and protected dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
